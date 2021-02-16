@@ -49,7 +49,7 @@ blocks.on('expired', async (key, value) => {
     );
 });
 
-const main = () => {
+const main = async () => {
   web3.eth
     .subscribe('logs', {
       topics: [topics.sync]

@@ -197,6 +197,7 @@ const getTrade = async (pairs) => {
         console.log('\t\t\t actual: ', TRADE2.priceImpact.toSignificant(6));
         console.log('\t\t\t output: ', outputFinal2);
         console.log('\t\t\t profit: ETH ', profitInEth);
+        console.log(JSON.stringify(TRADE2));
 
         // createTransaction(
         //   TRADE2,
@@ -278,7 +279,10 @@ const createTransaction = async (
         trade.route.path[2].address.substr(35),
       true
     );
-    web3.eth.getTransactionCount(admin).then((count) => {
+
+    // Temporarily disabled get nonce to reduce calls 
+    //
+    //web3.eth.getTransactionCount(admin).then((count) => {
       var hash = '';
       swapContract.methods
         .trade(
@@ -314,7 +318,7 @@ const createTransaction = async (
             admin,
             gas,
             gasCost,
-            count + 1,
+            Date.now(), // count + 1, Swapped out to reduce calls to infura
             hash,
             trade,
             'success',
@@ -355,7 +359,8 @@ const createTransaction = async (
           );
           console.log('[ERROR]: ', error);
         });
-    });
+    //}
+    );
   } else {
     console.log(gasFees, gas, gasCost, input, minimumOutput, path);
     console.log(gasCost);
@@ -375,7 +380,7 @@ const saveTrade = (
   from,
   gas,
   gasCost,
-  nonce,
+  time,
   hash,
   tradeObject,
   status,
@@ -401,7 +406,7 @@ const saveTrade = (
     from,
     gas,
     gasCost,
-    nonce,
+    time,
     hash,
     tradeObject,
     status,
