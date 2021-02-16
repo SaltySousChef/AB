@@ -1,4 +1,4 @@
-const { web3, Contract, admin, chainId } = require("../config/web3");
+const { web3, Contract, admin, chainId } = require('../config/web3');
 const {
   Token,
   WETH,
@@ -6,27 +6,27 @@ const {
   Pair,
   Route,
   Trade,
-  TradeType,
-} = require("@uniswap/sdk");
+  TradeType
+} = require('@uniswap/sdk');
 
-const { pairs, blocks, trades } = require("../cache/index");
-const { models } = require("../config/database");
+const { pairs, blocks, trades } = require('../cache/index');
+const { models } = require('../config/database');
 const {
   uniswap: abis,
-  swapContract: swapContractAbi,
-} = require("../abis/index");
-const { whitelist, blacklist, useWhitelist } = require("../config/tokens");
-const { swapContract: swapContractAddress } = require("../addresses/index");
+  swapContract: swapContractAbi
+} = require('../abis/index');
+const { whitelist, blacklist, useWhitelist } = require('../config/tokens');
+const { swapContract: swapContractAddress } = require('../addresses/index');
 
 const wethContract = new Contract(abis.token, WETH[chainId].address);
 const swapContract = new Contract(swapContractAbi, swapContractAddress);
 
 const etherToWei = (n) => {
-  return web3.utils.toWei(n, "ether");
+  return web3.utils.toWei(n, 'ether');
 };
 
 const weitoEther = (n) => {
-  return web3.utils.fromWei(n, "ether");
+  return web3.utils.fromWei(n, 'ether');
 };
 
 const isAddress = (address) => {
@@ -40,10 +40,10 @@ const getEthAmount = (
   min = process.env.MIN_TRADE_ETH
 ) => {
   const eth = web3.utils.toBN(Math.floor(parseInt(token.reserve) * percent));
-  if (parseInt(eth) > parseInt(web3.utils.toWei(max, "ether")))
-    return web3.utils.toWei(max, "ether");
-  else if (parseInt(eth) < parseInt(web3.utils.toWei(min, "ether")))
-    return web3.utils.toWei(min, "ether");
+  if (parseInt(eth) > parseInt(web3.utils.toWei(max, 'ether')))
+    return web3.utils.toWei(max, 'ether');
+  else if (parseInt(eth) < parseInt(web3.utils.toWei(min, 'ether')))
+    return web3.utils.toWei(min, 'ether');
   else return eth;
 };
 
@@ -68,7 +68,7 @@ const checkWhitelist = (pair) => {
 };
 
 const parseReserves = (sync) => {
-  return web3.eth.abi.decodeParameters(["uint256", "uint256"], sync.data);
+  return web3.eth.abi.decodeParameters(['uint256', 'uint256'], sync.data);
 };
 
 const buildTradePair = async (pair) => {
@@ -86,7 +86,7 @@ const buildTradePair = async (pair) => {
       pair.token1.decimals,
       pair.token1.symbol,
       pair.token1.name
-    ),
+    )
   ];
   const PAIR = new Pair(
     new TokenAmount(TOKENS[0], pair.token0.reserve),
@@ -123,7 +123,7 @@ const estimateGasFees = async () => {
   //   )
   //   .estimateGas({ from: admin })
   //   .catch((err) => console.log(err));
-  return parseFloat(weitoEther(toBN(200000 * blocks.get("gasPrice"))));
+  return parseFloat(weitoEther(toBN(200000 * blocks.get('gasPrice'))));
 };
 
 const getTrade = async (pairs) => {
@@ -140,7 +140,7 @@ const getTrade = async (pairs) => {
     }
     const TRADE = new Trade(
       route,
-      new TokenAmount(WETH[chainId], etherToWei("0.1")), //0.1 ETH
+      new TokenAmount(WETH[chainId], etherToWei('0.1')), //0.1 ETH
       TradeType.EXACT_INPUT
     );
 
@@ -173,7 +173,11 @@ const getTrade = async (pairs) => {
       var outputFinal2 = TRADE2.outputAmount.toSignificant(6) - gasFees;
       var profitInEth = outputFinal2 - input2;
       var percentProfit = (profitInEth / input2) * 100;
-      console.log("[SUCCESS]: " + percentProfit);
+      console.log(
+        percentProfit < 0
+          ? '[NOT GOOD]: ' + percentProfit + '%'
+          : '[ARB FOUND]: ' + percentProfit + '%'
+      );
       if (profitInEth > 0.002) {
         //if profit is at least ~$1
         console.log(
@@ -182,33 +186,33 @@ const getTrade = async (pairs) => {
           pairs[1].tokenAmounts[0].token.symbol,
           pairs[1].tokenAmounts[1].token.symbol
         );
-        console.log("\texecutionPrice: ", executionPrice);
-        console.log("\tpriceImpact: ", priceImpact);
-        console.log("\tmaxProfit (without gas fees): ", maxProfit);
-        console.log("\tinput: ", input);
-        console.log("\toutput: ", output);
-        console.log("\tgasFees: ", gasFees);
-        console.log("\tgasPrice", blocks.get("gasPrice"));
-        console.log("\tfinal output:", outputFinal);
-        console.log("\t\t\t actual: ", TRADE2.priceImpact.toSignificant(6));
-        console.log("\t\t\t output: ", outputFinal2);
-        console.log("\t\t\t profit: ", profitInEth);
+        console.log('\texecutionPrice: ', executionPrice);
+        console.log('\tpriceImpact: ', priceImpact);
+        console.log('\tmaxProfit (without gas fees): ', maxProfit);
+        console.log('\tinput: ', input);
+        console.log('\toutput: ', output);
+        console.log('\tgasFees: ', gasFees);
+        console.log('\tgasPrice', blocks.get('gasPrice'));
+        console.log('\tfinal output:', outputFinal);
+        console.log('\t\t\t actual: ', TRADE2.priceImpact.toSignificant(6));
+        console.log('\t\t\t output: ', outputFinal2);
+        console.log('\t\t\t profit: ETH ', profitInEth);
 
-        createTransaction(
-          TRADE2,
-          profitInEth,
-          executionPrice,
-          priceImpact,
-          maxProfit,
-          outputFinal2
-        );
+        // createTransaction(
+        //   TRADE2,
+        //   profitInEth,
+        //   executionPrice,
+        //   priceImpact,
+        //   maxProfit,
+        //   outputFinal2
+        // );
       }
     }
   }
 };
 
 const setGasCost = async (profitInEth) => {
-  const currentGasPrice = parseInt(blocks.get("gasPrice"));
+  const currentGasPrice = parseInt(blocks.get('gasPrice'));
   const initialFee = await estimateGasFees();
   const maxMultplier = (initialFee + profitInEth) / initialFee;
 
@@ -246,7 +250,7 @@ const createTransaction = async (
     trade.route.path[0].address,
     trade.route.path[1].address,
     trade.route.path[2].address,
-    trade.route.path[3].address,
+    trade.route.path[3].address
   ];
 
   const [gasCost, gasFees] = await setGasCost(profitInEth);
@@ -258,24 +262,24 @@ const createTransaction = async (
     gasFees &&
     gasCost !== null &&
     gasFees !== null &&
-    blocks.get("balance") > input &&
+    blocks.get('balance') > input &&
     output > input &&
     input < minimumOutput &&
     path[0] == WETH[chainId].address &&
     path[3] == WETH[chainId].address &&
-    blocks.get("timestamp") &&
-    blocks.get("timestamp") < Date.now() / 1000 + 5 &&
+    blocks.get('timestamp') &&
+    blocks.get('timestamp') < Date.now() / 1000 + 5 &&
     trades.keys().length == 0
   ) {
-    console.log("processing trade");
-    blocks.del("timestamp");
+    console.log('processing trade');
+    blocks.del('timestamp');
     trades.set(
       trade.route.path[1].address.substr(35) +
         trade.route.path[2].address.substr(35),
       true
     );
     web3.eth.getTransactionCount(admin).then((count) => {
-      var hash = "";
+      var hash = '';
       swapContract.methods
         .trade(
           etherToWei(input.toString()),
@@ -286,20 +290,20 @@ const createTransaction = async (
         .send({
           from: admin,
           gas: gas,
-          gasPrice: parseInt(gasCost),
+          gasPrice: parseInt(gasCost)
           //nonce: count + 1,
         })
-        .on("transactionHash", (txhash) => {
+        .on('transactionHash', (txhash) => {
           hash = txhash;
-          console.log("[INFO]: Successfully sent tx: ", txhash);
+          console.log('[INFO]: Successfully sent tx: ', txhash);
         })
-        .on("receipt", async (receipt) => {
+        .on('receipt', async (receipt) => {
           trades.del(
             trade.route.path[1].address.substr(35) +
               trade.route.path[2].address.substr(35)
           );
           blocks.set(
-            "balance",
+            'balance',
             parseFloat(
               weitoEther(
                 await wethContract.methods.balanceOf(swapContractAddress).call()
@@ -313,7 +317,7 @@ const createTransaction = async (
             count + 1,
             hash,
             trade,
-            "success",
+            'success',
             receipt,
             input,
             minimumOutput,
@@ -324,9 +328,9 @@ const createTransaction = async (
             output,
             outputFinal2
           );
-          console.log("[SUCCESS]: Transaction confirmed: ", receipt);
+          console.log('[SUCCESS]: Transaction confirmed: ', receipt);
         })
-        .on("error", (error) => {
+        .on('error', (error) => {
           trades.del(
             trade.route.path[1].address.substr(35) +
               trade.route.path[2].address.substr(35)
@@ -338,7 +342,7 @@ const createTransaction = async (
             count + 1,
             hash,
             trade,
-            "error",
+            'error',
             error,
             input,
             minimumOutput,
@@ -349,20 +353,20 @@ const createTransaction = async (
             output,
             outputFinal2
           );
-          console.log("[ERROR]: ", error);
+          console.log('[ERROR]: ', error);
         });
     });
   } else {
     console.log(gasFees, gas, gasCost, input, minimumOutput, path);
     console.log(gasCost);
     console.log(gasFees);
-    console.log(blocks.get("balance") > input);
+    console.log(blocks.get('balance') > input);
     console.log(output > input);
     console.log(input < minimumOutput);
     console.log(
       path[0] == WETH[chainId].address && path[3] == WETH[chainId].address
     );
-    console.log(blocks.get("timestamp"));
+    console.log(blocks.get('timestamp'));
     console.log(trades.keys().length == 0);
   }
 };
@@ -388,7 +392,7 @@ const saveTrade = (
   console.log(
     gas,
     parseInt(gasCost),
-    blocks.get("gasPrice"),
+    blocks.get('gasPrice'),
     input,
     minimumOutput,
     path
@@ -409,7 +413,7 @@ const saveTrade = (
     priceImpact,
     maxProfit,
     output,
-    outputFinal2,
+    outputFinal2
   });
 
   trade.save();
@@ -417,16 +421,16 @@ const saveTrade = (
 
 const getNonEthPairs = async (id) => {
   const token = await models.Token.findById({
-    _id: id,
-  }).populate("pairs", null, { tokenWeth: -1 });
+    _id: id
+  }).populate('pairs', null, { tokenWeth: -1 });
   return token.pairs;
 };
 
 const getEthPairs = async (id) => {
   const token = await models.Token.findById({
-    _id: id,
-  }).populate("pairs", null, {
-    $or: [{ tokenWeth: 1 }, { tokenWeth: 0 }],
+    _id: id
+  }).populate('pairs', null, {
+    $or: [{ tokenWeth: 1 }, { tokenWeth: 0 }]
   });
   return token.pairs;
 };
@@ -436,13 +440,13 @@ const getEthPair = async (idA, idB) => {
     $or: [
       {
         token0: idA,
-        token1: idB,
+        token1: idB
       },
       {
         token0: idB,
-        token1: idA,
-      },
-    ],
+        token1: idA
+      }
+    ]
   });
   return pair;
 };
@@ -452,29 +456,29 @@ const updatePairCache = async (pair, reserves) => {
     ...pair,
     token0: {
       ...pair.token0,
-      reserve: reserves[0],
+      reserve: reserves[0]
     },
     token1: {
       ...pair.token1,
-      reserve: reserves[1],
+      reserve: reserves[1]
     },
-    timestamp: blocks.get("timestamp"),
+    timestamp: blocks.get('timestamp')
   });
 };
 
 const addPairToCache = async (id) => {
   const newPair = await models.Pair.findById({
-    _id: id,
+    _id: id
   })
-    .populate("token0", ["address", "symbol", "decimals"])
-    .populate("token1", ["address", "symbol", "decimals"]);
+    .populate('token0', ['address', 'symbol', 'decimals'])
+    .populate('token1', ['address', 'symbol', 'decimals']);
 
   var pairContract = new Contract(abis.pair, newPair._doc.address);
 
   const reserves = await pairContract.methods
     .getReserves()
     .call()
-    .catch((err) => "[WARNING]: Failed to fetch pair reserves");
+    .catch((err) => '[WARNING]: Failed to fetch pair reserves');
 
   if (
     isNumeric(reserves[0]) &&
@@ -485,13 +489,13 @@ const addPairToCache = async (id) => {
       ...newPair._doc,
       token0: {
         ...newPair._doc.token0._doc,
-        reserve: reserves[0],
+        reserve: reserves[0]
       },
       token1: {
         ...newPair._doc.token1._doc,
-        reserve: reserves[1],
+        reserve: reserves[1]
       },
-      timestamp: reserves[2],
+      timestamp: reserves[2]
     };
     pairs.set(newPair._doc.address, addedPair);
     return addedPair;
@@ -500,8 +504,8 @@ const addPairToCache = async (id) => {
 
 const addPair = async (address, reserves) => {
   const pair = await models.Pair.findOne({ address: address })
-    .populate("token0")
-    .populate("token1");
+    .populate('token0')
+    .populate('token1');
 
   if (pair) {
     var token0 = pair.token0.address;
@@ -513,11 +517,11 @@ const addPair = async (address, reserves) => {
       pairContract.methods
         .token0()
         .call()
-        .catch((err) => console.log("Failed to fetch token0", err.data)),
+        .catch((err) => console.log('Failed to fetch token0', err.data)),
       pairContract.methods
         .token1()
         .call()
-        .catch((err) => console.log("Failed to fetch token1", err.data)),
+        .catch((err) => console.log('Failed to fetch token1', err.data))
     ]);
   }
   if (token0 && token1) {
@@ -529,7 +533,7 @@ const addPair = async (address, reserves) => {
       await models.Token.findOne(
         { address: token1 },
         { _id: 1, address: 1, symbol: 1, decimals: 1 }
-      ),
+      )
     ]);
 
     if (!savedToken0) {
@@ -552,8 +556,8 @@ const addPair = async (address, reserves) => {
     }
     if (savedToken0 && savedToken1) {
       var tokenWeth = -1;
-      if (savedToken0.symbol === "WETH") tokenWeth = 0;
-      else if (savedToken1.symbol === "WETH") tokenWeth = 1;
+      if (savedToken0.symbol === 'WETH') tokenWeth = 0;
+      else if (savedToken1.symbol === 'WETH') tokenWeth = 1;
 
       var updatedPair = {
         address: address,
@@ -563,7 +567,7 @@ const addPair = async (address, reserves) => {
         symbol1: savedToken1._doc.symbol,
         address0: savedToken0._doc.address,
         address1: savedToken1._doc.address,
-        tokenWeth,
+        tokenWeth
       };
 
       updatePairCache(updatedPair, reserves);
@@ -603,20 +607,20 @@ const _addToken = async (token) => {
       .symbol()
       .call()
       .catch((err) =>
-        console.log("[WARNING]: Failed to fetch token symbol", err.data)
+        console.log('[WARNING]: Failed to fetch token symbol', err.data)
       ),
     tokenContract.methods
       .name()
       .call()
       .catch((err) =>
-        console.log("[WARNING]: Failed to fetch token name", err.data)
+        console.log('[WARNING]: Failed to fetch token name', err.data)
       ),
     tokenContract.methods
       .decimals()
       .call()
       .catch((err) =>
-        console.log("[WARNING]: Failed to fetch token decimals", err.data)
-      ),
+        console.log('[WARNING]: Failed to fetch token decimals', err.data)
+      )
   ]);
 
   if (symbol && decimals) {
@@ -625,7 +629,7 @@ const _addToken = async (token) => {
       name,
       symbol,
       decimals: parseInt(decimals),
-      chainId: 1,
+      chainId: 1
     });
 
     return newToken
@@ -656,5 +660,5 @@ module.exports = {
   getEthPair,
   weitoEther,
   etherToWei,
-  setGasCost,
+  setGasCost
 };

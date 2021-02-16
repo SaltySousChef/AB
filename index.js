@@ -1,11 +1,15 @@
-require("dotenv").config();
+require('dotenv').config();
 
-const { connectDb } = require("./config/database");
-const { web3, chainId } = require("./config/web3");
-const { WETH } = require("@uniswap/sdk");
+const { connectDb } = require('./config/database');
+const { web3, chainId } = require('./config/web3');
+const { WETH } = require('@uniswap/sdk');
 
-const { syncs, pairs, blocks } = require("./cache/index");
-const { uniswap: abis } = require("./abis/index");
+// Use to populate database with token configurations
+//
+const fetchTokens = require('./cache/tokens');
+
+const { syncs, pairs, blocks } = require('./cache/index');
+const { uniswap: abis } = require('./abis/index');
 const wethContract = new web3.eth.Contract(abis.token, WETH[chainId].address);
 
 const {
@@ -21,22 +25,22 @@ const {
   getEthPair,
   weitoEther,
   toBN,
-  setGasCost,
-} = require("./utils/index");
+  setGasCost
+} = require('./utils/index');
 
-const { uniswap: topics } = require("./topics/index");
-const { swapContract: swapContractAddress } = require("./addresses/index");
+const { uniswap: topics } = require('./topics/index');
+const { swapContract: swapContractAddress } = require('./addresses/index');
 
-syncs.on("expired", async (address, sync) => {
-  if (blocks.get("timestamp")) {
+syncs.on('expired', async (address, sync) => {
+  if (blocks.get('timestamp')) {
     parseSync(address, sync);
   }
 });
 
-blocks.on("expired", async (key, value) => {
-  if (key == "balance")
+blocks.on('expired', async (key, value) => {
+  if (key == 'balance')
     blocks.set(
-      "balance",
+      'balance',
       parseFloat(
         weitoEther(
           await wethContract.methods.balanceOf(swapContractAddress).call()
@@ -47,40 +51,40 @@ blocks.on("expired", async (key, value) => {
 
 const main = () => {
   web3.eth
-    .subscribe("logs", {
-      topics: [topics.sync],
+    .subscribe('logs', {
+      topics: [topics.sync]
     })
-    .on("connected", async () => {
+    .on('connected', async () => {
       console.log(
-        "[INFO]: Connected to Ethereum: Listening for syncs on chain " + chainId
+        '[INFO]: Connected to Ethereum: Listening for syncs on chain ' + chainId
       );
     })
-    .on("data", async (sync) => {
+    .on('data', async (sync) => {
       syncs.set(sync.address, sync);
     })
-    .on("error", async (error) => {
-      console.log("[ERROR]: " + error);
+    .on('error', async (error) => {
+      console.log('[ERROR]: ' + error);
     });
 
   web3.eth
-    .subscribe("newBlockHeaders")
-    .on("connected", async () => {
+    .subscribe('newBlockHeaders')
+    .on('connected', async () => {
       console.log(
-        "[INFO]: Connected to Ethereum: Listening for new blocks on chain " +
+        '[INFO]: Connected to Ethereum: Listening for new blocks on chain ' +
           chainId
       );
     })
-    .on("data", async (block) => {
-      blocks.set("gasPrice", await web3.eth.getGasPrice());
-      blocks.set("timestamp", block.timestamp);
+    .on('data', async (block) => {
+      blocks.set('gasPrice', await web3.eth.getGasPrice());
+      blocks.set('timestamp', block.timestamp);
       console.log(
         `[INFO]: Received block ${block.number} with gasCost: ${blocks.get(
-          "gasPrice"
+          'gasPrice'
         )}`
       );
     })
-    .on("error", async (error) => {
-      console.log("[ERROR]: " + error);
+    .on('error', async (error) => {
+      console.log('[ERROR]: ' + error);
     });
 };
 
@@ -98,7 +102,7 @@ const parseSync = async (address, sync) => {
   if (cachedPair != undefined) {
     const isWhitelisted = checkWhitelist(cachedPair);
     if (isWhitelisted) {
-      await scanArbitrage(cachedPair);
+      scanArbitrage(cachedPair);
     }
   }
 };
@@ -164,16 +168,22 @@ const scanArbitrage = async (pair) => {
 };
 
 connectDb().then(async () => {
-  blocks.set(
-    "balance",
-    parseFloat(
-      weitoEther(
-        await wethContract.methods.balanceOf(swapContractAddress).call()
-      )
-    )
-  );
-  // try {
-  //   await fetchTokens();
-  // } catch (e) {}
-  main();
+  // blocks.set(
+  //   'balance',
+  //   parseFloat(
+  //     weitoEther(
+  //       await wethContract.methods.balanceOf(swapContractAddress).call()
+  //     )
+  //   )
+  // );
+
+  // Run to populate database with token addresses and decimals
+
+  try {
+    console.log('Fetching token information');
+    await fetchTokens();
+    main();
+  } catch (e) {
+    console.log(e);
+  }
 });

@@ -1,5 +1,7 @@
 module.exports = {
   useWhitelist: false,
   whitelist: [],
-  blacklist: ["USDT", "USDC", "DAI", "BLOODY", "ROT", "AMPL"],
+  blacklist: ['BLOODY', 'ROT', 'AMPL']
 };
+
+// blacklist: ["USDT", "USDC", "DAI", "BLOODY", "ROT", "AMPL"],
